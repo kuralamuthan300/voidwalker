@@ -59,7 +59,7 @@ The cascade **escalates** when the current layer produces empty or insufficient 
 
 ## Query Reports
 
-Seven query runs have been conducted to validate the Browser skill across diverse scenarios:
+Eight query runs have been conducted to validate the Browser skill across diverse scenarios:
 
 | # | Report | Query | Browser Path | Status | Total Time | Nodes | Gateway Cost |
 |---|--------|-------|-------------|--------|-----------|-------|-------------|
@@ -70,6 +70,7 @@ Seven query runs have been conducted to validate the Browser skill across divers
 | 5 | [output_ec4ed.md](./output_ec4ed.md) | Compare 3 laptops under ₹80,000 | `extract` (n:11 success) + `a11y` (n:16, n:21) | ⚠️ Mixed | 207.5s | 19 | $0.003896 |
 | 6 | [output_ee673.md](./output_ee673.md) | Compare 5 AI coding tools by free plan and paid plan | *(No browser — Researcher skill used)* | ✅ Success | 541.8s | 17 | $0.001622 |
 | 7 | [output_f7692.md](./output_f7692.md) | Compare 5 CNC/VMC training institutes in Bangalore | *(No browser — Researcher skill used)* | ✅ Success | 244.9s | 41 | $0.027170 |
+| 8 | [output_08a75.md](./output_08a75.md) | Go to Excalidraw and draw a rectangle | `a11y` → `vision` | ❌ Failed (canvas-based UI — target page closed) | 12.3s | 4 | $0.000 |
 
 ---
 
@@ -169,20 +170,34 @@ Seven query runs have been conducted to validate the Browser skill across divers
 | **Cost Summary** | 244.9s total, 41 nodes, $0.027170 |
 | **Key Observation** | The most expensive run ($0.027) due to 10 researcher invocations in a tight critic-recovery loop. The Planner struggled to get 5 complete institute profiles — each researcher returned partial data (1-3 institutes), the critic rejected it, and a new planner would respawn more researchers. Demonstrates the agent's persistence but also the cost of tight recovery loops. |
 
+### 8. Excalidraw Rectangle Drawing → [`output_08a75.md`](./output_08a75.md)
+
+| Field | Value |
+|-------|-------|
+| **Session** | `qr-3d508a75` |
+| **Original User Goal** | Go to Excalidraw and draw a rectangle |
+| **Planner DAG** | planner → browser → formatter → planner → formatter (5 nodes) |
+| **Browser Path Chosen** | `a11y` (12 turns) → escalated to `vision` (10 turns) |
+| **Status** | ❌ **Failed** — `TargetClosedError: Page closed unexpectedly` |
+| **Turn Count** | 22 total gateway calls (12 a11y + 10 vision) |
+| **Cost Summary** | 12.3s total, 4 nodes, $0.000 |
+| **Final Output** | *(Agent could not draw — formatter returned "I am unable to perform actions on external websites like Excalidraw, as I do not have the capability to interact with graphical interfaces or draw shapes.")* |
+| **Key Observation** | Excalidraw is a canvas-based drawing tool — there are no DOM interactive elements to enumerate via the accessibility tree. The a11y layer detected no meaningful elements (668-byte legends). After escalating to vision, the agent attempted to find drawing tools via screenshot analysis for 10 turns, but the page/tab was closed mid-operation (visible in the repeated screenshot sizes changing from 52KB → 30KB → 44KB). Canvas-based UIs are fundamentally challenging for the current DOM-centric approach. |
+
 ---
 
 ## Comparison Table
 
-| Metric | Query 1 (HF) | Query 2 (RealEstate) | Query 3 (YouTube) | Query 4 (Kaggle) | Query 5 (Laptops) | Query 6 (AI Tools) | Query 7 (CNC) |
-|--------|-------------|---------------------|-------------------|-----------------|------------------|-------------------|--------------|
-| **Status** | ⚠️ Partial | ❌ Failed | ✅ Success | ⚠️ Mixed | ✅ Success | ✅ Success | ✅ Success |
-| **Browser Layer** | a11y | a11y→vision | a11y | a11y+extract | extract+a11y | *(none)* | *(none)* |
-| **Total Time** | ~122s | 4.7s | 122.5s | 164.2s | 207.5s | 541.8s | 244.9s |
-| **Total Nodes** | ~76 | 2 | 19 | 12 | 19 | 17 | 41 |
-| **Gateway Cost** | ~$0.0038 | $0.000 | $0.003804 | $0.001464 | $0.003896 | $0.001622 | $0.027170 |
-| **Browser Turns** | 4-9 | 12+11 | 3-4 | 4/0 | 0/4-6 | N/A | N/A |
-| **Recovery Cycles** | Many | 0 | 5 | 1 | 3 | 2 | 10+ |
-| **LLM Provider** | gemini/groq | — | gemini/groq | gemini/groq | gemini/groq | gemini/groq | gemini/groq |
+| Metric | Q1 (HF) | Q2 (RealEstate) | Q3 (YouTube) | Q4 (Kaggle) | Q5 (Laptops) | Q6 (AI Tools) | Q7 (CNC) | Q8 (Excalidraw) |
+|--------|---------|-----------------|-------------|-------------|--------------|---------------|----------|----------------|
+| **Status** | ⚠️ Partial | ❌ Failed | ✅ Success | ⚠️ Mixed | ✅ Success | ✅ Success | ✅ Success | ❌ Failed |
+| **Browser Layer** | a11y | a11y→vision | a11y | a11y+extract | extract+a11y | *(none)* | *(none)* | a11y→vision |
+| **Total Time** | ~122s | 4.7s | 122.5s | 164.2s | 207.5s | 541.8s | 244.9s | 12.3s |
+| **Total Nodes** | ~76 | 2 | 19 | 12 | 19 | 17 | 41 | 4 |
+| **Gateway Cost** | ~$0.0038 | $0.000 | $0.003804 | $0.001464 | $0.003896 | $0.001622 | $0.027170 | $0.000 |
+| **Browser Turns** | 4-9 | 12+11 | 3-4 | 4/0 | 0/4-6 | N/A | N/A | 12+10 |
+| **Recovery Cycles** | Many | 0 | 5 | 1 | 3 | 2 | 10+ | 0 |
+| **LLM Provider** | gemini/groq | — | gemini/groq | gemini/groq | gemini/groq | gemini/groq | gemini/groq | — |
 
 ---
 
@@ -191,17 +206,18 @@ Seven query runs have been conducted to validate the Browser skill across divers
 ### What Works Well
 
 1. **A11y layer is robust for most sites** — Hugging Face, YouTube, Amazon, Kaggle all worked with the accessibility-tree text-only approach, completing in 3-6 turns with low cost.
-2. **Cascade escalation works** — When extract fails (Amazon's anti-bot), it correctly falls through to Playwright; when a11y can't parse the page (empty legends on centuryrealestate.in), it escalates to vision.
+2. **Cascade escalation works** — When extract fails (Amazon's anti-bot), it correctly falls through to Playwright; when a11y can't parse the page (empty legends on centuryrealestate.in, excalidraw.com), it escalates to vision.
 3. **Recovery planner prevents total failure** — When a critic rejects distiller output, the planner re-invokes the browser with refined goals, eventually converging on correct data.
 4. **Researcher skill is cheaper for text-based research** — For queries that only need web text (not interactive UIs), the Planner correctly chooses Researcher over Browser, saving gateway costs.
 
 ### Limitations & Edge Cases
 
-1. **Vision endpoint stability** — The `/v1/vision` 502 error on Query 2 caused a complete failure. The vision layer also exhibited looping behavior on Kaggle (same screenshot repeated for 12 turns).
-2. **Recovery loops can be expensive** — Query 7 (CNC institutes) ran 41 nodes due to repeated critic rejections, costing $0.027 — 10× more than simpler queries.
-3. **CAPTCHA/gateway detection** — The gateway block detection correctly identifies CAPTCHA markers before launching Playwright, but some anti-bot measures (Amazon's) still prevent successful extraction.
-4. **Empty a11y legends** — On sites with complex overlays/popups (centuryrealestate.in), the accessibility tree returns empty, forcing escalation to the more expensive vision layer.
-5. **No final formatter on critic cap** — Query 1's many recovery cycles eventually hit the critic-fail cap, meaning no formatter output was produced despite the browser having extracted the data.
+1. **Canvas-based UIs are unsupported** — Excalidraw (Query 8) uses an HTML5 canvas with no interactive DOM elements. The accessibility tree is nearly empty, and the vision layer cannot meaningfully interact with drawing tools.
+2. **Vision endpoint stability** — The `/v1/vision` 502 error on Query 2 caused a complete failure. The vision layer also exhibited looping behavior on Kaggle (same screenshot repeated for 12 turns).
+3. **Recovery loops can be expensive** — Query 7 (CNC institutes) ran 41 nodes due to repeated critic rejections, costing $0.027 — 10× more than simpler queries.
+4. **CAPTCHA/gateway detection** — The gateway block detection correctly identifies CAPTCHA markers before launching Playwright, but some anti-bot measures (Amazon's) still prevent successful extraction.
+5. **Empty a11y legends** — On sites with complex overlays/popups (centuryrealestate.in) or canvas-based apps (excalidraw.com), the accessibility tree returns empty, forcing escalation to the more expensive vision layer.
+6. **No final formatter on critic cap** — Query 1's many recovery cycles eventually hit the critic-fail cap, meaning no formatter output was produced despite the browser having extracted the data.
 
 ---
 
