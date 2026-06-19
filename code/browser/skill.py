@@ -254,7 +254,7 @@ class BrowserSkill:
             sub.mkdir(parents=True, exist_ok=True)
             artifacts_dir = str(sub)
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=False)
             ctx = await browser.new_context(
                 viewport={"width": 1366, "height": 900},
                 user_agent=(
@@ -312,7 +312,7 @@ class BrowserSkill:
         step is `{action, selector, value?}`. Returns AgentResult on success
         or None to let the cascade fall through to a11y."""
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=False)
             ctx = await browser.new_context(
                 viewport={"width": 1366, "height": 900},
             )
